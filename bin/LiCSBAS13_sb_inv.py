@@ -1257,6 +1257,7 @@ def main(argv=None):
         else:
             sumsq_cum_wrt_med = sumsq_cum_wrt_med_test
     if update_epochs_i:
+        update_epochs_i.sort(reverse=True)   # need to pop last ones first
         for i in update_epochs_i:
             _ = imdates.pop(i)
             _ = bperp.pop(i)
@@ -1265,6 +1266,7 @@ def main(argv=None):
         n_im=len(imdates)
         if save_mem:
             print('removing listed epochs from h5 file')
+            update_epochs_i.sort() # probably not needed
             remove_indices_from_dataset(cumh5, 'cum', update_epochs_i)
         if 'imdates' in cumh5:
             del cumh5['imdates']
