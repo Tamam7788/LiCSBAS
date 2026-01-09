@@ -63,6 +63,7 @@ p02to05_cliparea_geo=$p05_clip_range_geo # setting the clip range, e.g. 130.11/1
 p02to05_n_para=$n_para
 p02to05_op_GEOCdir="" # by default, if none, it will use GEOC directory
 
+
 ### Frequently used options. If blank, use default. ###
 p01_start_date=""	# default: 20141001
 p01_end_date=""	# default: today
@@ -83,6 +84,7 @@ p12_nullify="" # y/n. y recommended
 p12_rm_ifg_list=""	# List file containing ifgs to be manually removed
 p12_skippngs="" # y/n. n by default
 p13_nullify_noloops="" # y/n. n by default (but it is recommended to use this option with p12_nullify)
+p13_ignore_nullification="" # y/n. n by default
 p13_singular="" # y/n. n by default
 p13_singular_gauss="" # y/n. n by default
 p13_skippngs="" # y/n. n by default
@@ -467,6 +469,7 @@ if [ $start_step -le 13 -a $end_step -ge 13 ];then
     elif [ ! -z "$n_para" ];then p13_op="$p13_op --n_para $n_para"; fi
   if [ ! -z "$p13_n_unw_r_thre" ];then p13_op="$p13_op --n_unw_r_thre $p13_n_unw_r_thre"; fi
   if [ "$p13_keep_incfile" == "y" ];then p13_op="$p13_op --keep_incfile"; fi
+  if [ "$p13_ignore_nullification" == "y" ]; then p13_op="$p13_op --ignore_nullification"; fi
   if [ "$p13_nullify_noloops" == "y" ];then p13_op="$p13_op --nullify_noloops"; fi
   if [ "$p13_singular" == "y" ];then p13_op="$p13_op --singular"; fi
   if [ "$p13_sbovl" == "y" ];then p13_op="$p13_op --sbovl"; fi
