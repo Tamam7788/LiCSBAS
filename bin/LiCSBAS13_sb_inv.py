@@ -70,7 +70,7 @@ LiCSBAS13_sb_inv.py -d ifgdir [-t tsadir] [--inv_alg LS|WLS] [--mem_size float] 
  --mem_size   Max memory size for each patch in MB. (Default: 8000)
  --gamma      Gamma value for NSBAS inversion (Default: 0.0001)
  --n_para     Number of parallel processing (Default: # of usable CPU)
- --sbovl      Inversion of sbovl mm and cc values 
+ --sbovl      Inversion of (s)bovl mm and cc values. Note, no referencing is done for (s)bovl data.
  --n_unw_r_thre
      Threshold of n_unw (number of used unwrap data)
      (Note this value is ratio to the number of images (epochs); i.e., 1.5*n_im)
@@ -747,8 +747,8 @@ def main(argv=None):
                 for i in nanserror:
                     print('{}'.format(i), file=f)
             return 1
-    else:
-        print('SBOVL: no reference phase set up??')
+    #else:
+    #    print('SBOVL: no reference phase set up??')
     #%% Open cum.h5 for output
     ### Decide here what to do re. cumh5file and reloading patches. Need to check that stored cumh5 file is the right size etc
     print('store_patches:', store_patches)
@@ -861,8 +861,8 @@ def main(argv=None):
                 unw[unw == 0] = np.nan # Fill 0 with nan
                 if not sbovl:
                     unw = unw - ref_unw[i]
-                else:
-                    print('SBOVL: no reference removal set up??')
+                #else:
+                #    print('SBOVL: no reference removal set up??')
                 unwpatch[i] = unw
                 f.close()
 
