@@ -319,7 +319,7 @@ def main(argv=None):
     else:
         # Print existing status for sbovldiff.adf.mm and sbovldiff.adf.cc files
         if n_ifg - n_sbovl > 0:
-            print("  {0:3}/{1:3} sbovldiff.adf.mm and sbovldiff.adf.cc already exist. Skip".format(n_ifg - n_sbovl, n_ifg), flush=True)
+            print("  {0:3}/{1:3} (s)bovldiff.adf.mm and cc already exist. Skip".format(n_ifg - n_sbovl, n_ifg), flush=True)
            
                    
     width = None
@@ -409,6 +409,8 @@ def main(argv=None):
         example_date = None
         for pair in sbovl_ok:
             unw_tiffile = os.path.join(geocdir, pair, f"{pair}.geo.sbovldiff.adf.mm.tif")
+            if not unw_tiffile:
+                unw_tiffile = os.path.join(geocdir, pair, f"{pair}.geo.bovldiff.adf.mm.tif")
             geotiff = gdal.Open(unw_tiffile)
             if geotiff is not None:
                 example_date = date
@@ -555,7 +557,9 @@ def convert_wrapper(ifgd, is_sbovl=False):
             if not os.path.exists(unw_tiffile) or not os.path.exists(cc_tiffile):
                 print(f'  No {ifgd + ".geo.bovldiff.adf.mm.tif"} or {ifgd + ".geo.bovldiff.adf.cc.tif"} found. Skip.', flush=True)
                 return 1
-
+            else:
+                print(f'  {ifgd + ".geo.bovldiff.adf.mm.tif"} found ok', flush=True)
+    #
     else:
         # Default case for non-sbovl processing
         suffix = ['.geo.unw.tif', '.geo.cc.tif', '.unw', '.cc']
