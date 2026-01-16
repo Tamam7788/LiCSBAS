@@ -93,7 +93,7 @@ def main(argv=None):
         elif not os.path.exists(tsdir):
             raise Usage('No {} exists! '.format(tsdir))
         elif not os.path.exists(tsdir+'/results/vel.filt.mskd'):
-            raise Usage('Error, the vel_filt.mskd file does not exist - please finish processing incl step 16')
+            raise Usage('Error, the vel.filt.mskd file does not exist - please finish processing incl step 16')
 
     except Usage as err:
         print("\nERROR:", file=sys.stderr, end='')
