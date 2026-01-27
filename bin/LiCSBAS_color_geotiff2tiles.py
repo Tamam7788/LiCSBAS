@@ -86,6 +86,8 @@ def main(argv=None):
     zmin = 5
     zmax = []
     tms_flag = True
+    add_gsi = True
+
     try:
         n_para = len(os.sched_getaffinity(0))
     except:
@@ -150,13 +152,17 @@ def main(argv=None):
 
         pixsp = dlat_m if dlat_m < dlon_m else dlon_m  ## Use smaller one
 
-        if pixsp <= 5: zmax = 17
-        elif pixsp <= 10: zmax = 16
-        elif pixsp <= 20: zmax = 15
-        elif pixsp <= 40: zmax = 14
-        elif pixsp <= 80: zmax = 13
-        elif pixsp <= 160: zmax = 12
-        else: zmax = 11
+        #if pixsp <= 5: zmax = 17
+        #elif pixsp <= 10: zmax = 16
+        #elif pixsp <= 20: zmax = 15
+        #elif pixsp <= 40: zmax = 14
+        #elif pixsp <= 80: zmax = 13
+        #elif pixsp <= 160: zmax = 12
+        #else: zmax = 11
+
+        # ML: better way?:
+        zmax = np.log2(156543 / pixsp)
+        zmax = round(min(20, zmax))+2
 
     print('\nZoom levels: {} - {}'.format(zmin, zmax), flush=True)
 
@@ -208,30 +214,31 @@ def main(argv=None):
     with open(os.path.join(outdir, 'leaflet.html'), 'r') as f:
         lines = f.readlines()
 
-    ### Add GSImaps
-    gsi = '        //  .. GSIMaps\n        var gsi = L.tileLayer(\'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png\', {attribution: \'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>\'});\n'
-    gsi2 = '"GSIMaps": gsi, '
-    gsi_photo = '        //  .. GSIMaps photo\n        var gsi_photo = L.tileLayer(\'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg\', {attribution: \'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>\'});\n'
-    gsi_photo2 = '"GSIMaps Photo": gsi_photo, '
+    if add_gsi:
+        ### Add GSImaps
+        gsi = '        //  .. GSIMaps\n        var gsi = L.tileLayer(\'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png\', {attribution: \'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>\'});\n'
+        gsi2 = '"GSIMaps": gsi, '
+        gsi_photo = '        //  .. GSIMaps photo\n        var gsi_photo = L.tileLayer(\'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg\', {attribution: \'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>\'});\n'
+        gsi_photo2 = '"GSIMaps Photo": gsi_photo, '
 
-    ### XYZ or TMS
-    tms = 'true' if tms_flag else 'false'
+        ### XYZ or TMS
+        tms = 'true' if tms_flag else 'false'
 
-    ### Replace
-    lines2 = [s+gsi+gsi_photo if '// Base layers\n' in s else 
-              s.replace('= {', '= {'+gsi2+gsi_photo2) if 'var basemaps =' in s else
-              s.replace('true', tms) if 'tms: true' in s else
-              s for s in lines]
-    
-    with open(os.path.join(outdir, 'leaflet2.html'), 'w') as f:
-         f.writelines(lines2)
+        ### Replace
+        lines2 = [s+gsi+gsi_photo if '// Base layers\n' in s else
+                  s.replace('= {', '= {'+gsi2+gsi_photo2) if 'var basemaps =' in s else
+                  s.replace('true', tms) if 'tms: true' in s else
+                  s for s in lines]
 
-    
-    #%% Create layers.txt for GSIMaps
-#    url = 'file://' + os.path.join(os.path.abspath(outdir), '{z}', '{x}', '{y}.png')
-    url = os.path.join('http://', 'XXX', outdir, '{z}', '{x}', '{y}.png')
-    with open(os.path.join(outdir, 'layers.txt'), 'w') as f:
-         f.writelines(layers_txt(outdir, url, zmin, zmax, tms))
+        with open(os.path.join(outdir, 'leaflet2.html'), 'w') as f:
+             f.writelines(lines2)
+
+
+        #%% Create layers.txt for GSIMaps
+        #    url = 'file://' + os.path.join(os.path.abspath(outdir), '{z}', '{x}', '{y}.png')
+        url = os.path.join('http://', 'XXX', outdir, '{z}', '{x}', '{y}.png')
+        with open(os.path.join(outdir, 'layers.txt'), 'w') as f:
+             f.writelines(layers_txt(outdir, url, zmin, zmax, tms))
 
     
     #%% Finish
