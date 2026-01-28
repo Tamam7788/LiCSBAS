@@ -17,6 +17,7 @@ LiCSBAS_color_geotiff2tiles.py -i infile [-o outdir] [--zmin int] [--zmax int]
  -i  Input color GeoTIFF file
  -o  Output directory containing XYZ tiles
      (Default: tiles_[infile%.tif], '.' will be replaced with '_')
+ --title Title of the map (Default: outdir)
  --zmin  Minimum zoom level to render (Default: 5)
  --zmax  Maximum zoom level to render (Default: auto, see below)
          17 (pixel spacing <=   5m)
@@ -87,6 +88,7 @@ def main(argv=None):
     zmax = []
     tms_flag = True
     add_gsi = True
+    title = ''
 
     try:
         n_para = len(os.sched_getaffinity(0))
@@ -99,7 +101,7 @@ def main(argv=None):
     #%% Read options
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "hi:o:", ["help", "zmin=", "zmax=", "xyz", "n_para="])
+            opts, args = getopt.getopt(argv[1:], "hi:o:", ["help", "zmin=", "title=", "zmax=", "xyz", "n_para="])
         except getopt.error as msg:
             raise Usage(msg)
         for o, a in opts:
@@ -108,6 +110,8 @@ def main(argv=None):
                 return 0
             elif o == '-i':
                 infile = a
+            elif o == '--title':
+                title = a
             elif o == '-o':
                 outdir = a
             elif o == '--zmin':
@@ -142,6 +146,9 @@ def main(argv=None):
 
     print('\nOutput dir: {}'.format(outdir), flush=True)
 
+    if not title:
+        title = outdir
+
     if not zmax:
         geotiff = gdal.Open(infile)
         lon_w, dlon, _, lat_n, _, dlat = geotiff.GetGeoTransform()
@@ -169,9 +176,9 @@ def main(argv=None):
     gdalver = gdal.VersionInfo() ## e.g., 3.1.1 -> 3010100, str
 
 
-    #%% gdal2ties
+    #%% gdal2tiles
     call = ["gdal2tiles.py", "-z", "{}-{}".format(zmin, zmax), 
-            "--no-kml", "-w", "leaflet",
+            "--no-kml", "-w", "leaflet", "-r", "med", "-t", title,
             infile, outdir]
 
     if int(gdalver[0]) >= 3:
