@@ -580,7 +580,10 @@ def main(argv=None):
         cum_filt = np.zeros((n_im, length, width), dtype=np.float32)
 
         print('\nHP filter in time, LP filter in space,', flush=True)
-
+        if filtwidth_km == 0.0:
+            print('\n(skipping spatial filter)', flush=True)
+        if filtwidth_yr == 0.0:
+            print('\n(skipping temporal filter)', flush=True)
         if n_para == 1:
             for i in range(n_im):
                 cum_filt[i, :, :] = np.float32(filter_wrapper(i))
@@ -638,12 +641,12 @@ def main(argv=None):
         del cum_model
         modelh5.close()
 
-    ### Rerferencing cumulative displacement to new stable ref
+    ### Referencing cumulative displacement to new stable ref
     if not sbovl:
         for i in range(n_im):
             cum_filt[i, :, :] = cum_filt[i, :, :] - refpoint_cum_org[i]  #cum[i, refy1s, refx1s]
-    else:
-        print('Skipping back referencing to stable point for SBOI?')
+    #else:
+    #    print('Skipping back referencing to stable point for SBOI?')
 
     ### Save image
     rms_cum_wrt_med_file = os.path.join(infodir, '16rms_cum_wrt_med')

@@ -12,13 +12,14 @@ Finally, note it expects you to have the filtered masked velocity calculated, i.
 =====
 Usage
 =====
-LiCSBAS_vel_plate_motion.py -t tsdir [-f frame] [-o vel_pmm_fixed.tif] [--vstd_fix] [--keep_absolute]
+LiCSBAS_vel_plate_motion.py -t tsdir [-f frame] [-o vel_pmm_fixed.tif] [--vstd_fix] [--keep_absolute] [--azimuth]
 
  -t TS_GEOC_dir  TS folder with finished processing including step 16 (mandatory)
  -f frame_ID  In case your GEOC folder does not contain ENU tif files, provide frame ID
  -o  Output tif file (Default: vel_pmm_fixed.tif)
  --vstd_fix  Would also perform reference fix in vstd
  --keep_absolute  Do not fix to a reference point
+ --azimuth   Use ENU files for azimuth directions (for sbovls)
 
 Note it will use the final output, i.e. masked filtered velocity after step 16.
 """
@@ -63,10 +64,11 @@ def main(argv=None):
     outfile = 'vel_pmm_fixed.tif'
     frame = None
     keep_absolute = False
+    azimuth = False
     #%% Read options
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "ht:f:o:", ["help", "vstd_fix", "keep_absolute"])
+            opts, args = getopt.getopt(argv[1:], "ht:f:o:", ["help", "vstd_fix", "keep_absolute", "azimuth"])
         except getopt.error as msg:
             raise Usage(msg)
         for o, a in opts:
@@ -83,13 +85,15 @@ def main(argv=None):
                 keep_absolute = True
             elif o == '-o':
                 outfile = a
+            elif o == '--azimuth':
+                azimuth = True
 
         if not tsdir:
             raise Usage('No tsdir given, -t is not optional!')
         elif not os.path.exists(tsdir):
             raise Usage('No {} exists! '.format(tsdir))
         elif not os.path.exists(tsdir+'/results/vel.filt.mskd'):
-            raise Usage('Error, the vel_filt.mskd file does not exist - please finish processing incl step 16')
+            raise Usage('Error, the vel.filt.mskd file does not exist - please finish processing incl step 16')
 
     except Usage as err:
         print("\nERROR:", file=sys.stderr, end='')
@@ -99,50 +103,47 @@ def main(argv=None):
 
 
     #%%
-    #vfilt_file = tsdir+'/results/vel_filt.mskd'
-    vlos_eurfile = tsdir+'/results/vel_eurasia_los.tif'
-    #if not os.path.exists(vlos_eurfile):
-    vlos_eurasia = lts.generate_pmm_velocity(frame, 'Eurasia', 'GEOC', vlos_eurfile)
-    #else:
-    #    vlos_eurasia = lts.load_tif2xr(vlos_eurfile)
+    vel_eurfile = tsdir+'/results/vel_eurasia_los.tif'
+    if azimuth:
+        vel_eurfile = tsdir+'/results/vel_eurasia_azi.tif'
+    vel_eurasia = lts.generate_pmm_velocity(frame, 'Eurasia', 'GEOC', vel_eurfile, azi = azimuth)
     vel_tiffile = tsdir+'/results/vel.filt.mskd.tif'
-    # if not os.path.exists(vel_tiffile):   # why not to regenerate it....
     cmd = 'LiCSBAS_flt2geotiff.py -i {0}/results/vel.filt.mskd -p {0}/info/EQA.dem_par -o {0}/results/vel.filt.mskd.tif'.format(tsdir)
     os.system(cmd)
     if not os.path.exists(vel_tiffile):
-        print('ERROR, cannot generate vlos tif file')
+        print('ERROR, cannot generate '+vel_tiffile)
         exit()
 
-    vlos = lts.load_tif2xr(vel_tiffile)
-    vlos_eurasia_reshaped = vlos_eurasia.interp_like(vlos)
+    vel = lts.load_tif2xr(vel_tiffile)
+    vel_eurasia_reshaped = vel_eurasia.interp_like(vel)
 
-    vlos.values = vlos.values - vlos_eurasia_reshaped.values
+    vel.values = vel.values - vel_eurasia_reshaped.values
     if not keep_absolute:
         print('\n Fixing to the reference area selected at step 16 \n')
         reffile = os.path.join(tsdir, 'info', '16ref.txt')
         if not os.path.exists(reffile):
             print('ERROR, no 16ref.txt file exists! Referring to the median of whole scene instead \n')
-            vlos = vlos - vlos.where(vlos != 0).median()
+            vel = vel - vel.where(vel != 0).median()
         else:
             with open(reffile, "r") as f:
                 refarea = f.read().split()[0]  # str, x1/x2/y1/y2
             refx1, refx2, refy1, refy2 = [int(s) for s in re.split('[:/]', refarea)]
-            vlos.values = vlos.values - np.nanmean(vlos.values[refy1:refy2, refx1:refx2])
-    lts.export_xr2tif(vlos, outfile, dogdal = False)
+            vel.values = vel.values - np.nanmean(vel.values[refy1:refy2, refx1:refx2])
+    lts.export_xr2tif(vel, outfile, dogdal = False)
 
     # %% Make png if specified
     if pngflag:
         pngfile = outfile[:-4] + '.png'
         title = 'Velocity fixed towards Eurasia'
-        cmin = np.nanpercentile(vlos.values, 1)
-        cmax = np.nanpercentile(vlos.values, 99)
-        plot_lib.make_im_png(vlos.values, pngfile, cmap, title, cmin, cmax)
+        cmin = np.nanpercentile(vel.values, 1)
+        cmax = np.nanpercentile(vel.values, 99)
+        plot_lib.make_im_png(vel.values, pngfile, cmap, title, cmin, cmax)
 
-        pngfile = vlos_eurfile[:-4] + '.png'
+        pngfile = vel_eurfile[:-4] + '.png'
         title = 'Eurasia-fixed plate motion'
-        cmin = np.nanpercentile(vlos_eurasia.values, 1)
-        cmax = np.nanpercentile(vlos_eurasia.values, 99)
-        plot_lib.make_im_png(vlos_eurasia.values, pngfile, cmap, title, cmin, cmax)
+        cmin = np.nanpercentile(vel_eurasia.values, 1)
+        cmax = np.nanpercentile(vel_eurasia.values, 99)
+        plot_lib.make_im_png(vel_eurasia.values, pngfile, cmap, title, cmin, cmax)
 
     if vstd_fix:
         # recalc vstd
