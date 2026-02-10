@@ -63,6 +63,7 @@ p02to05_cliparea_geo=$p05_clip_range_geo # setting the clip range, e.g. 130.11/1
 p02to05_n_para=$n_para
 p02to05_op_GEOCdir="" # by default, if none, it will use GEOC directory
 
+
 ### Frequently used options. If blank, use default. ###
 p01_start_date=""	# default: 20141001
 p01_end_date=""	# default: today
@@ -82,7 +83,8 @@ p12_multi_prime="y"	# y/n. y recommended
 p12_nullify="" # y/n. y recommended
 p12_rm_ifg_list=""	# List file containing ifgs to be manually removed
 p12_skippngs="" # y/n. n by default
-p13_nullify_noloops="" # y/n. n by default
+p13_nullify_noloops="" # y/n. n by default (but it is recommended to use this option with p12_nullify)
+p13_ignore_nullification="" # y/n. n by default
 p13_singular="" # y/n. n by default
 p13_singular_gauss="" # y/n. n by default
 p13_skippngs="" # y/n. n by default
@@ -143,6 +145,7 @@ p120_ignoreconncomp="n" # y/n
 p12_GEOCmldir=""        # default: $GEOCmldir
 p12_TSdir=""    # default: TS_$GEOCmldir
 p12_n_para=$n_para	# default: # of usable CPU
+p12_nullify_fix_ref='' # y/n
 p13_GEOCmldir=""        # default: $GEOCmldir
 p13_TSdir=""    # default: TS_$GEOCmldir
 p13_inv_alg=""	# LS (default) or WLS
@@ -411,6 +414,7 @@ if [ $start_step -le 12 -a $end_step -ge 12 ];then
       if [ ! -z $p12_loop_thre ];then p12_op="$p12_op -l $p12_loop_thre"; fi
       if [ $p12_multi_prime == "y" ];then p12_op="$p12_op --multi_prime"; fi
       if [ $p12_nullify == "y" ];then p12_op="$p12_op --nullify"; fi
+      if [ $p12_nullify_fix_ref == "y" ]; then p12_op="$p12_op --nullify_fix_ref"; fi
       if [ $p12_skippngs == "y" ];then p12_op="$p12_op --nopngs"; fi
       if [ ! -z $p12_rm_ifg_list ];then p12_op="$p12_op --rm_ifg_list $p12_rm_ifg_list"; fi
       if [ ! -z $p12_n_para ];then p12_op="$p12_op --n_para $p12_n_para";
@@ -422,10 +426,9 @@ if [ $start_step -le 12 -a $end_step -ge 12 ];then
         LiCSBAS12_loop_closure.py $p12_op 2>&1 | tee -a $log
         if [ ${PIPESTATUS[0]} -ne 0 ];then exit 1; fi
       fi
-      # 2024/11/13: updated nullification may cause extra all-nans-in-ref area. Workaround - update reference point.
-      # Forcing this to always use p120 ..
+      # 2024/11/13: updated nullification may cause extra all-nans-in-ref area. Rerunning step 120 if set to be used
       if [ $p12_nullify == "y" ];then
-      #if [ $p120_use == "y" ]; then
+      if [ $p120_use == "y" ]; then
         dirset="-c $GEOCmldir -d $GEOCmldir -t $TSdir "
         extra=""
         if [ $p120_ignoreconncomp == "y" ]; then
@@ -438,7 +441,7 @@ if [ $start_step -le 12 -a $end_step -ge 12 ];then
           if [ ${PIPESTATUS[0]} -ne 0 ];then echo "WARNING, LiCSBAS120 failed. Reverting to original LiCSBAS ref selection"; fi; #
           # if [ ${PIPESTATUS[0]} -ne 0 ];then exit 1; fi
         fi
-      #fi
+      fi
       fi
     fi
 fi
@@ -468,6 +471,7 @@ if [ $start_step -le 13 -a $end_step -ge 13 ];then
     elif [ ! -z "$n_para" ];then p13_op="$p13_op --n_para $n_para"; fi
   if [ ! -z "$p13_n_unw_r_thre" ];then p13_op="$p13_op --n_unw_r_thre $p13_n_unw_r_thre"; fi
   if [ "$p13_keep_incfile" == "y" ];then p13_op="$p13_op --keep_incfile"; fi
+  if [ "$p13_ignore_nullification" == "y" ]; then p13_op="$p13_op --ignore_nullification"; fi
   if [ "$p13_nullify_noloops" == "y" ];then p13_op="$p13_op --nullify_noloops"; fi
   if [ "$p13_singular" == "y" ];then p13_op="$p13_op --singular"; fi
   if [ "$p13_sbovl" == "y" ];then p13_op="$p13_op --sbovl"; fi

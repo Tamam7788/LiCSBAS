@@ -70,7 +70,7 @@ LiCSBAS13_sb_inv.py -d ifgdir [-t tsadir] [--inv_alg LS|WLS] [--mem_size float] 
  --mem_size   Max memory size for each patch in MB. (Default: 8000)
  --gamma      Gamma value for NSBAS inversion (Default: 0.0001)
  --n_para     Number of parallel processing (Default: # of usable CPU)
- --sbovl      Inversion of sbovl mm and cc values 
+ --sbovl      Inversion of (s)bovl mm and cc values. Note, no referencing is done for (s)bovl data.
  --n_unw_r_thre
      Threshold of n_unw (number of used unwrap data)
      (Note this value is ratio to the number of images (epochs); i.e., 1.5*n_im)
@@ -716,6 +716,9 @@ def main(argv=None):
         nanserror = []
         for i, ifgd in enumerate(ifgdates):
             unwfile = os.path.join(ifgdir, ifgd, ifgd+'.unw')
+            if ignore_nullification:
+                if os.path.exists(unwfile + '.ori'):
+                    unwfile = unwfile + '.ori'
             f = open(unwfile, 'rb')
             f.seek(countf*4, os.SEEK_SET) #Seek for >=2nd path, 4 means byte
 
@@ -744,8 +747,8 @@ def main(argv=None):
                 for i in nanserror:
                     print('{}'.format(i), file=f)
             return 1
-    else:
-        print('SBOVL: no reference phase set up??')
+    #else:
+    #    print('SBOVL: no reference phase set up??')
     #%% Open cum.h5 for output
     ### Decide here what to do re. cumh5file and reloading patches. Need to check that stored cumh5 file is the right size etc
     print('store_patches:', store_patches)
@@ -858,8 +861,8 @@ def main(argv=None):
                 unw[unw == 0] = np.nan # Fill 0 with nan
                 if not sbovl:
                     unw = unw - ref_unw[i]
-                else:
-                    print('SBOVL: no reference removal set up??')
+                #else:
+                #    print('SBOVL: no reference removal set up??')
                 unwpatch[i] = unw
                 f.close()
 
@@ -1257,6 +1260,7 @@ def main(argv=None):
         else:
             sumsq_cum_wrt_med = sumsq_cum_wrt_med_test
     if update_epochs_i:
+        update_epochs_i.sort(reverse=True)   # need to pop last ones first
         for i in update_epochs_i:
             _ = imdates.pop(i)
             _ = bperp.pop(i)
@@ -1265,6 +1269,7 @@ def main(argv=None):
         n_im=len(imdates)
         if save_mem:
             print('removing listed epochs from h5 file')
+            update_epochs_i.sort() # probably not needed
             remove_indices_from_dataset(cumh5, 'cum', update_epochs_i)
         if 'imdates' in cumh5:
             del cumh5['imdates']
